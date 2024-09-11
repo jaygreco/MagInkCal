@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-This script essentially generates a HTML file of the calendar I wish to display. It then fires up a headless Chrome
-instance, sized to the resolution of the eInk display and takes a screenshot. This screenshot will then be processed
+This script essentially generates a HTML file of the calendar I wish to display. It then fires cutycapt using xvfb
+sized to the resolution of the eInk display and takes a screenshot. This screenshot will then be processed
 to extract the grayscale and red portions, which are then sent to the eInk display for updating.
 
 This might sound like a convoluted way to generate the calendar, but I'm doing so mainly because (i) it's easier to
@@ -11,76 +11,41 @@ calendar and refreshing of the eInk display. In the future, I might choose to ge
 RPi device, while using a ESP32 or PiZero purely to just retrieve the image from a file host and update the screen.
 """
 
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
+# TODO: sort
+# TODO: this doesn't quite work when doing nested imports
+# Add root to path so modules in the parent directory are accessible
+import sys
+import os
+here = os.path.dirname(__file__)
+sys.path.append(os.path.join(here, '..'))
+
 from time import sleep
-from datetime import timedelta
+from datetime import timedelta, datetime, date
+from epd_hidapi.host.image import resize_image, extract_image
+from epd_hidapi.host.panel import Panel
 import pathlib
-from PIL import Image
 import logging
+import shutil
+from subprocess import call
 
 
 class RenderHelper:
-
     def __init__(self, width, height, angle):
         self.logger = logging.getLogger('maginkcal')
         self.currPath = str(pathlib.Path(__file__).parent.absolute())
-        self.htmlFile = 'file://' + self.currPath + '/calendar.html'
         self.imageWidth = width
         self.imageHeight = height
         self.rotateAngle = angle
 
-    def set_viewport_size(self, driver):
-
-        # Extract the current window size from the driver
-        current_window_size = driver.get_window_size()
-
-        # Extract the client window size from the html tag
-        html = driver.find_element(By.TAG_NAME,'html')
-        inner_width = int(html.get_attribute("clientWidth"))
-        inner_height = int(html.get_attribute("clientHeight"))
-
-        # "Internal width you want to set+Set "outer frame width" to window size
-        target_width = self.imageWidth + (current_window_size["width"] - inner_width)
-        target_height = self.imageHeight + (current_window_size["height"] - inner_height)
-
-        driver.set_window_rect(
-            width=target_width,
-            height=target_height)
-
-    def get_screenshot(self):
-        opts = Options()
-        opts.add_argument("--headless")
-        opts.add_argument("--hide-scrollbars");
-        opts.add_argument('--force-device-scale-factor=1')
-        driver = webdriver.Chrome(options=opts)
-        self.set_viewport_size(driver)
-        driver.get(self.htmlFile)
-        sleep(1)
-        driver.get_screenshot_as_file(self.currPath + '/calendar.png')
-        driver.quit()
+    def get_screenshot(self, uri, outfile):
+        # Yeah, I know. subprocess.call() with shell=True is bad, but this
+        # isn't open to the internet and I control all the inputs.
+        # TODO: adapt this for panel size, also dealing with the CSS file
+        call(f"xvfb-run --server-args='-screen 0, 768x960x24' \
+        cutycapt --url={uri} --min-width=768 --min-height=960 \
+        --out={outfile} ", shell=True)
 
         self.logger.info('Screenshot captured and saved to file.')
-
-        redimg = Image.open(self.currPath + '/calendar.png')  # get image)
-        rpixels = redimg.load()  # create the pixel map
-        blackimg = Image.open(self.currPath + '/calendar.png')  # get image)
-        bpixels = blackimg.load()  # create the pixel map
-
-        for i in range(redimg.size[0]):  # loop through every pixel in the image
-            for j in range(redimg.size[1]): # since both bitmaps are identical, cycle only once and not both bitmaps
-                if rpixels[i, j][0] <= rpixels[i, j][1] and rpixels[i, j][0] <= rpixels[i, j][2]:  # if is not red
-                    rpixels[i, j] = (255, 255, 255)  # change it to white in the red image bitmap
-
-                elif bpixels[i, j][0] > bpixels[i, j][1] and bpixels[i, j][0] > bpixels[i, j][2]:  # if is red
-                    bpixels[i, j] = (255, 255, 255)  # change to white in the black image bitmap
-
-        redimg = redimg.rotate(self.rotateAngle, expand=True)
-        blackimg = blackimg.rotate(self.rotateAngle, expand=True)
-
-        self.logger.info('Image colours processed. Extracted grayscale and red images.')
-        return blackimg, redimg
 
     def get_day_in_cal(self, startDate, eventDate):
         delta = eventDate - startDate
@@ -206,6 +171,23 @@ class RenderHelper:
                                                 events=cal_events_text))
         htmlFile.close()
 
-        calBlackImage, calRedImage = self.get_screenshot()
+        self.get_screenshot(f"file://{self.currPath}/calendar.html", f"{self.currPath}/calendar.png")
 
-        return calBlackImage, calRedImage
+        # TODO: hacky test
+        resize_image(f"{self.currPath}/calendar.png", 768, 960)
+
+        panel = Panel()
+        panel.upload_image(f"{self.currPath}/calendar.png")
+
+        # TODO:
+        # return calBlackImage, calRedImage
+        return ([], [])
+
+if __name__ == "__main__":
+    calDict = {'events': [], 'calStartDate': date(2024, 9, 1), 'today': date(2024, 9, 1), 
+                    'lastRefresh': datetime(2024, 9, 1, 0, 1, 0, 0),
+                    'batteryLevel': 100, 'batteryDisplayMode': 0, 'dayOfWeekText': ["M", "T", "W", "T", "F", "S", "S"],
+                    'weekStartDay': 6, 'maxEventsPerDay': 0,'is24hour': False}
+
+    renderService = RenderHelper(768, 960, 90)
+    calBlackImage, calRedImage = renderService.process_inputs(calDict)

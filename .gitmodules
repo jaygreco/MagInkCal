@@ -1,0 +1,3 @@
+[submodule "epd_hidapi"]
+	path = epd_hidapi
+	url = https://github.com/jaygreco/epd-hidapi
