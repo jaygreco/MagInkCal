@@ -2,6 +2,9 @@
 gcal/credentials.json
 gcal/token.pickle
 
+# iCloud Calendar API Credential and Token
+ical/credentials.json
+
 # Intermediate render files
 render/calendar.html
 render/calendar.png

@@ -14,7 +14,6 @@ import sys
 from pytz import timezone
 from gcal.gcal import GcalHelper
 from render.render import RenderHelper
-# from power.power import PowerHelper
 import json
 import logging
 

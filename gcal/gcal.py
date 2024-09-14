@@ -5,7 +5,6 @@ This is where we retrieve events from the Google Calendar. Before doing so, make
 credentials.json and token.pickle in the same folder as this file. If not, run quickstart.py first.
 """
 
-from __future__ import print_function
 import datetime as dt
 import pickle
 import os.path
@@ -88,8 +87,6 @@ class GcalHelper:
 
         minTimeStr = startDatetime.isoformat()
         maxTimeStr = endDatetime.isoformat()
-        if False:
-            return eventList
 
         self.logger.info('Retrieving events between ' + minTimeStr + ' and ' + maxTimeStr + '...')
         events_result = []
@@ -135,3 +132,21 @@ class GcalHelper:
         # TODO: improve because of double cycle for now is not much cost
         eventList = sorted(eventList, key=lambda k: k['startDatetime'])
         return eventList
+
+if __name__ == "__main__":
+    from pprint import pprint
+    from pytz import timezone
+
+    calendars = ["primary"]
+    displayTZ = timezone("America/Los_Angeles")
+    thresholdHours = 24
+    calStartDate = dt.date(2024, 9, 1)
+    calEndDate = calStartDate + dt.timedelta(days=(5 * 7 - 1))
+    calStartDatetime = displayTZ.localize(dt.datetime.combine(calStartDate, dt.datetime.min.time()))
+    calEndDatetime = displayTZ.localize(dt.datetime.combine(calEndDate, dt.datetime.max.time()))
+    gcalService = GcalHelper()
+    eventList = gcalService.retrieve_events(calendars, calStartDatetime, 
+        calEndDatetime, displayTZ, thresholdHours)
+
+    import pickle
+    print(pickle.dumps(eventList))
