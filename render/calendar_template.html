@@ -6,15 +6,33 @@
 <body>
 <div class="container p-0 m-0">
     <!-- Calendar -->
-    <div class="calendar shadow bg-white p-3">
-        <!-- Month -->
-        <div class="align-items-center text-center"><h3 class="month font-weight-bold mb-0 text-uppercase">{month}</h3></div>
+    <div class="calendar shadow bg-white">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-sm-3 text-center">
+                    <!-- Month -->
+                    <div class="align-items-center text-center">
+                        <h3 class="month font-weight-bold mb-0 text-uppercase">{month}</h3>
+                    </div>
+                </div>
+                <div class="col-sm-9 align-items-center text-center">
+                    <!-- Today's events -->
+                        <ol class="list-unstyled">
+                            <li class="p-3 font-weight-boldore today-list">
+                                
+                            </li>
+                        </ol>
+                </div>
+            </div>
+        </div>
         <!-- Battery -->
-        <div class="batt_container"><img class="{battText}" src="battery.png" /></div>
+        <div class="batt_container">
+            <img class="{battText}" src="battery.png" />
+        </div>
         <!-- Days of week -->
         <ol class="day-names list-unstyled text-center">{dayOfWeek}</ol>
         <!-- Calendar and events -->
-        <ol class="days list-unstyled">{events}</ol>
+        <ol class="days list-unstyled">{events_month}</ol>
     </div>
 </div>
 </body>

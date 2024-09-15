@@ -148,5 +148,7 @@ if __name__ == "__main__":
     eventList = gcalService.retrieve_events(calendars, calStartDatetime, 
         calEndDatetime, displayTZ, thresholdHours)
 
-    import pickle
-    print(pickle.dumps(eventList))
+    pprint(eventList)
+
+    # import pickle
+    # print(pickle.dumps(eventList))

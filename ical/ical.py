@@ -97,6 +97,9 @@ class IcalHelper:
             self.logger.info('No upcoming events found.')
 
         for event in events:
+            if event['allday'] is True:
+                # Force start and end times to be the same
+                event['startDatetime'] = event['endDatetime']
             event['endDatetime'] = self.adjust_end_time(event['endDatetime'], localTZ)
             event['isUpdated'] = self.is_recent_updated(event['updatedDatetime'], thresholdHours)
             event['isMultiday'] = self.is_multiday(event['startDatetime'], event['endDatetime'])
@@ -120,3 +123,6 @@ if __name__ == "__main__":
         calEndDatetime, displayTZ, thresholdHours)
 
     pprint(eventList)
+
+    # import pickle
+    # print(pickle.dumps(eventList))

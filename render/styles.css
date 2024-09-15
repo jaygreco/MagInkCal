@@ -27,13 +27,14 @@
     padding: 1rem!important;
 }
 
-.text-center {
-    text-align: center!important;
+.list-unstyled {
+    margin-bottom: 0;
 }
 
-.list-unstyled {
-    padding-left: 0;
-    list-style: none;
+.today-list {
+    width: 100%!important;
+    font-size: 1.5rem;
+    font-weight: bold;
 }
 
 .font-weight-bold {
@@ -75,11 +76,8 @@ body {
     padding: 0!important;
     margin: 0!important;
     max-width: 984px;
-    height: 1304px;
 }
-*, ::after, ::before {
-    box-sizing: border-box;
-}
+
 .calendar ol::after {
   content: ".";
   display: block;
@@ -92,11 +90,12 @@ body {
 Calendar Styling */
 .calendar {
   border-radius: 0px;
+  box-shadow: 0 0 0 rgba(0,0,0,.15)!important;
 }
 
 .month {
-  font-size: 13rem;
-  font-family: "Quattrocento-Regular";
+  font-size: 10rem;
+  font-family: "Quattrocento-Bold";
 }
 
 @media (min-width: 992px) {
@@ -161,10 +160,7 @@ Calendar Styling */
 
 .calendar .days li .event {
   font-size: 1rem;
-  /* font-weight: bold;*/
   padding: 0.1rem;
-  /* color: black; */
-  /* font-family: "Judson-Regular";*/
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
