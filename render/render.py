@@ -140,35 +140,43 @@ class RenderHelper:
 
         # Populate the date and events
         cal_events = []
+        todays_events = []
         for i, entry in enumerate(calList):
             # TODO: can we do this without i? maybe?
             currDate = calDict['calStartDate'] + timedelta(days=i)
             dayOfMonth = currDate.day
 
+            text_style = ""
+            badge_style = "badge-dark"
+
             if currDate == calDict['today']:
                 c = "datecircle"
             elif currDate.month != calDict['today'].month:
-                c = "date text-muted"
+                text_style = "text-muted"
+                badge_style = "badge-light"
+                c = f"date {text_style}"
             else:
                 c = "date"
 
             events = []
             for event in entry:
                 event_time = self.get_short_time(event['startDatetime'], is24hour)
-                # TODO: clever way to apply styles:
-                    # muted for next month's events
-                    # badge color & updated events
+                # TODO: clever way to apply styles?
+
+                if event['isUpdated']:
+                    text_style = "text-danger"
+                    badge_style = "badge-danger"
 
                 if event['isMultiday'] and event['startDatetime'].date() == currDate:
-                    event_summary = "&rarr;" + event['summary']
+                    event_summary = t('b', body="&rarr;") + event['summary']
                 elif event['isMultiday']and event['startDatetime'].date() != currDate:
-                    event_summary = "&larr;" + event['summary']
+                    event_summary = t('b', body="&larr;") + event['summary']
                 else:
                     event_summary = event['summary']
 
-                time_badge = "" if event['allday'] else t('span', c='badge badge-dark', body=event_time)
+                time_badge = "" if event['allday'] else t('span', c=f'badge {badge_style}', body=event_time)
                 events.append(
-                    t('div', c='event', body=(
+                    t('div', c=f'event {text_style}', body=(
                         time_badge, " ", 
                         t('i', body=event_summary)
                         )
@@ -192,51 +200,18 @@ class RenderHelper:
                 )
             )
 
-        # Join is faster than += for strings
+            if currDate == calDict['today']:
+                # Also add to today's events
+                todays_events = events
+
+        # Join is faster/more memory efficient than += for strings
         cal_events_text = '\n'.join(cal_events)
-
-        # for i in range(len(calList)):
-        #     currDate = calDict['calStartDate'] + timedelta(days=i)
-        #     dayOfMonth = currDate.day
-        #     if currDate == calDict['today']:
-        #         # add circle
-        #         cal_events_text += '<li><div class="datecircle">' + str(dayOfMonth) + '</div>\n'
-        #     elif currDate.month != calDict['today'].month:
-        #         # grayed out
-        #         cal_events_text += '<li><div class="date text-muted">' + str(dayOfMonth) + '</div>\n'
-        #     else:
-        #         # normal day
-        #         cal_events_text += '<li><div class="date">' + str(dayOfMonth) + '</div>\n'
-
-            # TODO: build each day's events before this, then load them in
-            # for j in range(min(len(calList[i]), maxEventsPerDay)):
-            #     event = calList[i][j]
-            #     cal_events_text += '<div class="event'
-            #     if event['isUpdated']:
-            #         cal_events_text += ' text-danger'
-            #     elif currDate.month != calDict['today'].month:
-            #         cal_events_text += ' text-muted'
-            #     if event['isMultiday']:
-            #         if event['startDatetime'].date() == currDate:
-            #             cal_events_text += '"> &rarr;' + event['summary']
-            #         else:
-            #             cal_events_text += '"> &larr;' + event['summary']
-            #     elif event['allday']:
-            #         cal_events_text += '">' + event['summary']
-            #     else:
-            #         # <span class="badge badge-dark">8am</span>
-            #         cal_events_text += '">' + self.get_short_time(event['startDatetime'], is24hour) + ' ' + event['summary']
-
-            #     cal_events_text += '</div>\n'
-
-            # if len(calList[i]) > maxEventsPerDay:
-            #     cal_events_text += '<div class="event text-muted"> +' + str(len(calList[i]) - maxEventsPerDay) + ' more'
-
-            # cal_events_text += '</li>\n'
 
         # Append the bottom and write the file
         htmlFile = open(self.currPath + '/calendar.html', "w")
-        htmlFile.write(calendar_template.format(month=month_name, battText=battText, dayOfWeek=cal_days_of_week, events_month=cal_events_text))
+        htmlFile.write(calendar_template.format(month=month_name,
+            battText=battText, days_of_week=cal_days_of_week,
+            events_month=cal_events_text, events_today="\n".join(todays_events)))
         htmlFile.close()
 
         self.get_screenshot(f"file://{self.currPath}/calendar.html", f"{self.currPath}/calendar.png")
@@ -256,7 +231,7 @@ if __name__ == "__main__":
     events.append(events[-1])
     events.append(events[-1])
     events.append(events[-1])
-    # TODO: an object here makes more sense than a dict
+    # TODO: an object here makes more sense than a dict?
     calDict = {'events': events, 'calStartDate': date(2024, 9, 1),
                 'today': date(2024, 9, 2), 
                 'lastRefresh': datetime(2024, 9, 1, 0, 1, 0, 0),

@@ -27,8 +27,15 @@
     padding: 1rem!important;
 }
 
+
 .list-unstyled {
     margin-bottom: 0;
+}
+
+.list-centered {
+  display: flex;
+  align-items: center;
+  height: 192px;
 }
 
 .today-list {
