@@ -1,0 +1,9 @@
+hidapi==0.14.0.post2
+httplib2==0.22.0
+icalendar==5.0.13
+icalevents==0.1.29
+pillow==10.4.0
+pyparsing==3.1.4
+python-dateutil==2.9.0.post0
+pytz==2024.2
+six==1.16.0

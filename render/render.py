@@ -21,155 +21,153 @@ sys.path.append(os.path.join(here, '..'))
 
 from time import sleep
 from datetime import timedelta, datetime, date
-from epd_hidapi.host.image import resize_image, extract_image
-from template import template as t
+from render.template import template as t
+from config import Config
 import pathlib
 import logging
 import shutil
 from subprocess import call
 
+# TODO: wtf self.path thing
 
 class RenderHelper:
-    def __init__(self, width, height, angle):
+    def __init__(self, events, start_date, today, battery_level=100, width=768, height=960, rotation=90):
         self.logger = logging.getLogger('maginkcal')
-        self.currPath = str(pathlib.Path(__file__).parent.absolute())
-        self.imageWidth = width
-        self.imageHeight = height
-        self.rotateAngle = angle
+        self._path = str(pathlib.Path(__file__).parent.absolute())
+        self.events = events
+        self.start_date = start_date
+        self.today = today
+        self.battery_level = battery_level
+        self.width = width
+        self.height = height
+        self.rotation = rotation
 
     def get_screenshot(self, uri, outfile):
+        self.logger.info('Capturing calendar screenshot')
+
         # Yeah, I know. subprocess.call() with shell=True is bad, but this
         # isn't open to the internet and I control all the inputs.
-        # TODO: adapt this for panel size, also dealing with the CSS file
+        # TODO: adapt this for panel size, also deal with the CSS file
         call(f"xvfb-run --server-args='-screen 0, 768x960x24' \
         cutycapt --url={uri} --min-width=768 --min-height=960 \
         --out={outfile} ", shell=True)
 
         self.logger.info('Screenshot captured and saved to file.')
 
-    def get_day_in_cal(self, startDate, eventDate):
-        delta = eventDate - startDate
+    def get_day_in_cal(self, start_date, event_date):
+        delta = event_date - start_date
         return delta.days
 
-    def get_short_time(self, datetimeObj, is24hour=False):
+    def get_short_time(self, datetime_obj, is_24hour=False):
         datetime_str = ''
-        if is24hour:
-            datetime_str = '{}:{:02d}'.format(datetimeObj.hour, datetimeObj.minute)
+        if is_24hour:
+            datetime_str = '{}:{:02d}'.format(datetime_obj.hour, datetime_obj.minute)
         else:
-            if datetimeObj.minute > 0:
-                datetime_str = '.{:02d}'.format(datetimeObj.minute)
+            if datetime_obj.minute > 0:
+                datetime_str = ':{:02d}'.format(datetime_obj.minute)
 
-            if datetimeObj.hour == 0:
+            if datetime_obj.hour == 0:
                 datetime_str = '12{}A'.format(datetime_str)
-            elif datetimeObj.hour == 12:
+            elif datetime_obj.hour == 12:
                 datetime_str = '12{}P'.format(datetime_str)
-            elif datetimeObj.hour > 12:
-                datetime_str = '{}{}P'.format(str(datetimeObj.hour % 12), datetime_str)
+            elif datetime_obj.hour > 12:
+                datetime_str = '{}{}P'.format(str(datetime_obj.hour % 12), datetime_str)
             else:
-                datetime_str = '{}{}A'.format(str(datetimeObj.hour), datetime_str)
+                datetime_str = '{}{}A'.format(str(datetime_obj.hour), datetime_str)
         return datetime_str
 
-    def process_inputs(self, calDict):
-        # calDict = {'events': eventList, 'calStartDate': calStartDate, 'today': currDate, 'lastRefresh': currDatetime, 'batteryLevel': batteryLevel}
+    def build_calendar_list(self):
+        calendar_list = []
 
-        # retrieve calendar configuration
-        # TODO: why pass these instead of loading them directly?
-        maxEventsPerDay = calDict['maxEventsPerDay']
-        batteryDisplayMode = calDict['batteryDisplayMode']
-        dayOfWeekText = calDict['dayOfWeekText']
-        weekStartDay = calDict['weekStartDay']
-        is24hour = calDict['is24hour']
-
-        # TODO: there is a better way to do this
-        # first setup list to represent the 5 weeks in our calendar
-        calList = []
         for i in range(35):
-            calList.append([])
+            calendar_list.append([])
 
         # for each item in the eventList, add them to the relevant day in our calendar list
-        for event in calDict['events']:
-            idx = self.get_day_in_cal(calDict['calStartDate'], event['startDatetime'].date())
-            if idx >= 0:
-                calList[idx].append(event)
+        for event in self.events:
+            day = self.get_day_in_cal(self.start_date, event['startDatetime'].date())
+            if day >= 0:
+                calendar_list[day].append(event)
             if event['isMultiday']:
-                idx = self.get_day_in_cal(calDict['calStartDate'], event['endDatetime'].date())
-                if idx < len(calList):
-                    calList[idx].append(event)
+                day = self.get_day_in_cal(self.start_date, event['endDatetime'].date())
+                if day < len(calendar_list):
+                    calendar_list[day].append(event)
 
-        # TODO: extract today's events as well
+        return calendar_list
 
-        # TODO: debug
-        # from pprint import pprint
-        # pprint(event_list)
+    def process_inputs(self):
+        self.logger.info('Rendering calendar HTML')
 
-        # Read html template
-        with open(self.currPath + '/calendar_template.html', 'r') as file:
-            calendar_template = file.read()
+        # retrieve calendar configuration
+        config = Config()
 
-        # Insert month header
-        month_name = str(calDict['today'].month)
+        # build calendar list from events
+        calendar_days = self.build_calendar_list()
 
         # Insert battery icon
         # batteryDisplayMode - 0: do not show / 1: always show / 2: show when battery is low
-        battLevel = calDict['batteryLevel']
-
-        if batteryDisplayMode == 0:
-            battText = 'batteryHide'
-        elif batteryDisplayMode == 1:
-            if battLevel >= 80:
-                battText = 'battery80'
-            elif battLevel >= 60:
-                battText = 'battery60'
-            elif battLevel >= 40:
-                battText = 'battery40'
-            elif battLevel >= 20:
-                battText = 'battery20'
+        if config.batteryDisplayMode == 0:
+            battery_text = 'batteryHide'
+        elif config.batteryDisplayMode == 1:
+            if self.battery_level >= 80:
+                battery_text = 'battery80'
+            elif self.battery_level >= 60:
+                battery_text = 'battery60'
+            elif self.battery_level >= 40:
+                battery_text = 'battery40'
+            elif self.battery_level >= 20:
+                battery_text = 'battery20'
             else:
-                battText = 'battery0'
-
-        elif batteryDisplayMode == 2 and battLevel < 20.0:
-            battText = 'battery0'
-        elif batteryDisplayMode == 2 and battLevel >= 20.0:
-            battText = 'batteryHide'
+                battery_text = 'battery0'
+        elif config.batteryDisplayMode == 2 and self.battery_level < 20.0:
+            battery_text = 'battery0'
+        elif config.batteryDisplayMode == 2 and self.battery_level >= 20.0:
+            battery_text = 'batteryHide'
 
         # Populate the day of week row
         l = []
         for d in range(0, 7):
-            l.append(t('li', c='font-weight-bold text-uppercase', body=dayOfWeekText[(d + weekStartDay) % 7]))
+            l.append(t('li', c='font-weight-bold text-uppercase',
+                body=config.dayOfWeekText[(d + config.weekStartDay) % 7]))
         cal_days_of_week = '\n'.join(l)
 
         # Populate the date and events
         cal_events = []
         todays_events = []
-        for i, entry in enumerate(calList):
+        for i, entry in enumerate(calendar_days):
             # TODO: can we do this without i? maybe?
-            currDate = calDict['calStartDate'] + timedelta(days=i)
-            dayOfMonth = currDate.day
+            current_date = self.start_date + timedelta(days=i)
+            day_of_month = current_date.day
 
-            text_style = ""
-            badge_style = "badge-dark"
-
-            if currDate == calDict['today']:
+            # Set day style
+            if current_date == self.today:
                 c = "datecircle"
-            elif currDate.month != calDict['today'].month:
-                text_style = "text-muted"
-                badge_style = "badge-light"
-                c = f"date {text_style}"
+            elif current_date.month != self.today.month:
+                c = "date text-muted"
             else:
                 c = "date"
 
             events = []
             for event in entry:
-                event_time = self.get_short_time(event['startDatetime'], is24hour)
-                # TODO: clever way to apply styles?
 
-                if event['isUpdated']:
+                # Set event styles
+                text_style = ""
+                badge_style = ""
+
+                if current_date.month != self.today.month:
+                    text_style = "text-muted"
+                    badge_style = "badge-light"
+                elif event['isUpdated']:
                     text_style = "text-danger"
                     badge_style = "badge-danger"
+                else:
+                    text_style = ""
+                    badge_style = "badge-dark"
 
-                if event['isMultiday'] and event['startDatetime'].date() == currDate:
+                event_time = self.get_short_time(event['startDatetime'], config.is24hour)
+
+                if event['isMultiday'] and event['startDatetime'].date() == current_date:
                     event_summary = t('b', body="&rarr;") + event['summary']
-                elif event['isMultiday']and event['startDatetime'].date() != currDate:
+                elif event['isMultiday']and event['startDatetime'].date() != current_date:
                     event_summary = t('b', body="&larr;") + event['summary']
                 else:
                     event_summary = event['summary']
@@ -178,15 +176,15 @@ class RenderHelper:
                 events.append(
                     t('div', c=f'event {text_style}', body=(
                         time_badge, " ", 
-                        t('i', body=event_summary)
+                        t('b', body=event_summary.encode('ascii', 'xmlcharrefreplace').decode("utf-8"))
                         )
                     )
                 )
 
             # Remove events above the maximum and add "+x more"
-            if len(events) > maxEventsPerDay:
-                event_summary = f"+{len(events) - maxEventsPerDay} more..."
-                events = events[:maxEventsPerDay]
+            if len(events) > config.maxEventsPerDay:
+                event_summary = f"+{len(events) - config.maxEventsPerDay} more..."
+                events = events[:config.maxEventsPerDay]
                 events.append(
                     t('div', c='event text-muted', body=(t('i', body=event_summary)))
                 )
@@ -194,34 +192,33 @@ class RenderHelper:
             # Add the day's events
             cal_events.append(
                 t('li', body=(
-                    t('div', c=c, body=dayOfMonth),
+                    t('div', c=c, body=day_of_month),
                     "".join(events)
                     )
                 )
             )
 
-            if currDate == calDict['today']:
+            if current_date == self.today:
                 # Also add to today's events
                 todays_events = events
 
         # Join is faster/more memory efficient than += for strings
         cal_events_text = '\n'.join(cal_events)
 
+        # Read html template
+        with open(self._path + '/calendar_template.html', 'r') as file:
+            calendar_template = file.read()
+
         # Append the bottom and write the file
-        htmlFile = open(self.currPath + '/calendar.html', "w")
-        htmlFile.write(calendar_template.format(month=month_name,
-            battText=battText, days_of_week=cal_days_of_week,
+        calendar_html = open(self._path + '/calendar.html', "w")
+        calendar_html.write(calendar_template.format(
+            date=str(f"{self.today.month}/{self.today.day}"),
+            battery_text=battery_text, days_of_week=cal_days_of_week,
             events_month=cal_events_text, events_today="\n".join(todays_events)))
-        htmlFile.close()
+        calendar_html.close()
 
-        self.get_screenshot(f"file://{self.currPath}/calendar.html", f"{self.currPath}/calendar.png")
+        self.get_screenshot(f"file://{self._path}/calendar.html", f"{self._path}/calendar.png")
 
-        # TODO: hacky test -- clip pixels after resizing to nearest instead
-        resize_image(f"{self.currPath}/calendar.png", 768, 960)
-
-        # TODO:
-        # return calBlackImage, calRedImage
-        return ([], [])
 
 if __name__ == "__main__":
     import pickle
@@ -231,13 +228,7 @@ if __name__ == "__main__":
     events.append(events[-1])
     events.append(events[-1])
     events.append(events[-1])
-    # TODO: an object here makes more sense than a dict?
-    calDict = {'events': events, 'calStartDate': date(2024, 9, 1),
-                'today': date(2024, 9, 2), 
-                'lastRefresh': datetime(2024, 9, 1, 0, 1, 0, 0),
-                'batteryLevel': 100, 'batteryDisplayMode': 0,
-                'dayOfWeekText': ["M", "T", "W", "T", "F", "S", "S"],
-                'weekStartDay': 6, 'maxEventsPerDay': 3, 'is24hour': False}
 
-    renderService = RenderHelper(768, 960, 90)
-    calBlackImage, calRedImage = renderService.process_inputs(calDict)
+    renderService = RenderHelper(events=events,
+        start_date=date(2024, 9, 1), today=date(2024, 9, 2))
+    renderService.process_inputs()

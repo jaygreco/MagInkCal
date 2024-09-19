@@ -40,7 +40,7 @@
 
 .today-list {
     width: 100%!important;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     font-weight: bold;
 }
 
@@ -109,7 +109,7 @@ Calendar Styling */
   .month {
     font-size: 13rem;
     line-height: 13rem;
-    font-family: "Quattrocento-Regular";
+    font-family: "Quattrocento-Bold";
   }
 }
 
@@ -121,7 +121,7 @@ Calendar Styling */
 .calendar .day-names {
   font-size: 3.5rem;
   line-height: 1.2;
-  font-family: "Quattrocento-Regular";
+  font-family: "Quattrocento-Bold";
 }
 
 .calendar .day-names li {
@@ -144,11 +144,25 @@ Calendar Styling */
   text-align: center;
   font-size: 3rem;
   font-weight: bold;
-  font-family: "Quattrocento-Regular";
+  font-family: "Quattrocento-Bold";
 }
 
 .datecirclebox {
     position: relative;
+}
+
+.text-danger {
+    color: #ff0000 !important;
+}
+
+.badge-danger {
+    color: #fff;
+    background-color: #ff0000;
+}
+
+.badge-light {
+    color: #000000;
+    background-color: #ffffff;
 }
 
 .datecircle {
@@ -156,7 +170,7 @@ Calendar Styling */
     width:4rem;
     height:4rem;
     border-radius:2rem;
-    font-family: "Quattrocento-Regular";
+    font-family: "Quattrocento-Bold";
     font-size:3rem;
     color:white;
     line-height: 4rem;
@@ -166,8 +180,9 @@ Calendar Styling */
 }
 
 .calendar .days li .event {
-  font-size: 1rem;
-  padding: 0.1rem;
+  font-size: 1.2rem;
+  padding: 0rem;
+  letter-spacing: -2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -180,7 +195,7 @@ Calendar Styling */
 }
 
 .text-multiday {
-  text-overflow: '...」'!important;
+  text-overflow: '...'!important;
 }
 
 .calendar .days li .event.begin {

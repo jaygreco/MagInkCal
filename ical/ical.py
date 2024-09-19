@@ -15,18 +15,10 @@ import logging
 
 class IcalHelper:
 
-    def __init__(self):
+    def __init__(self, calendars):
         self.logger = logging.getLogger('maginkcal')
-        # Initialise the Google Calendar using the provided credentials and token
-        SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
         self.currPath = str(pathlib.Path(__file__).parent.absolute())
-
-        creds = None
-        if os.path.exists(self.currPath + '/credentials.json'):
-            with open(self.currPath + '/credentials.json', 'rb') as fo:
-                creds = json.load(fo)
-
-        self.calendars = creds.get("calendars", [])
+        self.calendars = calendars
 
     def list_calendars(self):
         # helps to retrieve ID for calendars within the account
@@ -65,9 +57,7 @@ class IcalHelper:
     def map_keys(self, key_map, d):
         for old_key, new_key in key_map:
             d[new_key] = d.pop(old_key)
-
         return d
-
 
     def retrieve_events(self, startDatetime, endDatetime, localTZ, thresholdHours):
         # Call the Google Calendar API and return a list of events that fall within the specified dates
@@ -82,7 +72,7 @@ class IcalHelper:
             events_result.extend(
                 ical.events(url=cal["id"], 
                     start=startDatetime, end=endDatetime,
-                    fix_apple=True, sort=True, tzinfo=displayTZ)
+                    fix_apple=True, sort=True, tzinfo=localTZ)
                 )
 
         key_map = [
@@ -108,21 +98,25 @@ class IcalHelper:
         return sorted(events, key=lambda k: k['startDatetime'])
 
 if __name__ == "__main__":
+    import sys
+    import os
+    here = os.path.dirname(__file__)
+    sys.path.append(os.path.join(here, '..'))
+
+    from config import Config
     from pprint import pprint
     from pytz import timezone
 
-    displayTZ = timezone("America/Los_Angeles")
-    thresholdHours = 24
+    config = Config()
+
+    displayTZ = timezone(config.displayTZ)
     calStartDate = dt.date(2024, 9, 1)
     calEndDate = calStartDate + dt.timedelta(days=(5 * 7 - 1))
     calStartDatetime = displayTZ.localize(dt.datetime.combine(calStartDate, dt.datetime.min.time()))
     calEndDatetime = displayTZ.localize(dt.datetime.combine(calEndDate, dt.datetime.max.time()))
 
-    icalService = IcalHelper()
+    icalService = IcalHelper(calendars=config.get("calendars", []))
     eventList = icalService.retrieve_events(calStartDatetime, 
-        calEndDatetime, displayTZ, thresholdHours)
+        calEndDatetime, displayTZ, config.thresholdHours)
 
     pprint(eventList)
-
-    # import pickle
-    # print(pickle.dumps(eventList))
