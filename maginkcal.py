@@ -1,32 +1,28 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-This project is designed for the WaveShare 12.48" eInk display. Modifications will be needed for other displays,
-especially the display drivers and how the image is being rendered on the display. Also, this is the first project that
-I posted on GitHub so please go easy on me. There are still many parts of the code (especially with timezone
-conversions) that are not tested comprehensively, since my calendar/events are largely based on the timezone I'm in.
-There will also be work needed to adjust the calendar rendering for different screen sizes, such as modifying of the
-CSS stylesheets in the "render" folder.
-"""
+
+# TODO: sort
 import datetime as dt
 import sys
 
 from config import Config
 from pytz import timezone
-from ical.ical import IcalHelper
-from render.render import RenderHelper
+from ical_engine.ical import IcalHelper
+from render_engine.render import RenderHelper
 from epd_hidapi.host.panel import Panel
 from epd_hidapi.host.image import Image
+import pathlib
 import json
 import logging
 import pickle
+
+_path = str(pathlib.Path(__file__).parent.absolute())
 
 def should_refresh(event_list, today):
     refresh = False
     last = {}
 
     try:
-        with open("last.pickle", "rb") as fo:
+        with open(f"{_path}/last.pickle", "rb") as fo:
             last = pickle.load(fo)
 
     except FileNotFoundError:
@@ -40,7 +36,7 @@ def should_refresh(event_list, today):
     if refresh:
         last["today"] = today
         last["event_list"] = event_list
-        with open("last.pickle", "wb") as fo:
+        with open(f"{_path}/last.pickle", "wb") as fo:
             pickle.dump(last, fo)
 
     return refresh
@@ -77,8 +73,8 @@ def main():
         gcal_calendars = [cal for cal in config.calendars if cal.get("type")  == "gcal"]
         logger.info("gcal_calendars: " + str(gcal_calendars))
         if gcal_calendars:
-            # Use lazy imports so that gcal credentials aren't always required
-            from gcal.gcal import GcalHelper
+            # Use lazy imports so that gcal credentials aren't required if not using a google calendar
+            from gcal_engine.gcal import GcalHelper
             gcalService = GcalHelper()
             eventList.extend(gcalService.retrieve_events(gcal_calendars, calStartDatetime, calEndDatetime, config.displayTZ, config.thresholdHours))
 
@@ -88,7 +84,7 @@ def main():
             icalService = IcalHelper(ical_calendars)
             eventList.extend(icalService.retrieve_events(calStartDatetime, calEndDatetime, config.displayTZ, config.thresholdHours))
 
-        logger.info("Calendar events retrieved in " + str(dt.datetime.now() - start))
+        logger.info(f"{len(eventList)} calendar events retrieved in " + str(dt.datetime.now() - start))
 
         # Only proceed if the calendar events have changed, or it's a new day. 
         if not should_refresh(eventList, currDate):
@@ -99,24 +95,25 @@ def main():
         renderService = RenderHelper(events=eventList, start_date=calStartDate, today=currDate)
         renderService.process_inputs()
 
-        image = Image("render/calendar.png")
+        infile = f"{_path}/render_engine/calendar.png"
+        image = Image(infile)
         image.resize(width=config.screenWidth, height=config.screenHeight)
         image.rotate(rotation=90)
         image.extract(threshold=200)
-        # image.save(f"{infile}_resized.png")
-        # image.save(f"{infile}_black.bmp", monochrome=True, color="black")
-        # image.save(f"{infile}_red.bmp", monochrome=True, color="red")
+        image.save(f"{infile}_resized.png")
+        image.save(f"{infile}_black.bmp", monochrome=True, color="black")
+        image.save(f"{infile}_red.bmp", monochrome=True, color="red")
 
-        # TODO: break out pixel splitting here instead of including it in panel?
         if config.isDisplayToScreen:
             panel = Panel()
             panel.upload_image(image.bit_array_black, image.bit_array_red)
 
     except Exception as e:
         logger.error(f"error: {e}")
+        if config.raiseExceptions:
+            raise e
 
     logger.info("Completed calendar update")
 
-# TODO: update on-demand (poll for calendar )
 if __name__ == "__main__":
     main()

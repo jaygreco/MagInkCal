@@ -1,18 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-This script essentially generates a HTML file of the calendar I wish to display. It then fires cutycapt using xvfb
-sized to the resolution of the eInk display and takes a screenshot. This screenshot will then be processed
-to extract the grayscale and red portions, which are then sent to the eInk display for updating.
 
-This might sound like a convoluted way to generate the calendar, but I'm doing so mainly because (i) it's easier to
-format the calendar exactly the way I want it using HTML/CSS, and (ii) I can better delink the generation of the
-calendar and refreshing of the eInk display. In the future, I might choose to generate the calendar on a separate
-RPi device, while using a ESP32 or PiZero purely to just retrieve the image from a file host and update the screen.
-"""
-
-# TODO: sort
-# TODO: this doesn't quite work when doing nested imports
+# TODO: sort, format
 # Add root to path so modules in the parent directory are accessible
 import sys
 import os
@@ -21,38 +9,30 @@ sys.path.append(os.path.join(here, '..'))
 
 from time import sleep
 from datetime import timedelta, datetime, date
-from render.template import template as t
+from render_engine.template import template as t
 from config import Config
 import pathlib
 import logging
 import shutil
 from subprocess import call
 
-# TODO: wtf self.path thing
-
 class RenderHelper:
-    def __init__(self, events, start_date, today, battery_level=100, width=768, height=960, rotation=90):
+    def __init__(self, events, start_date, today, battery_level=100):
         self.logger = logging.getLogger('maginkcal')
         self._path = str(pathlib.Path(__file__).parent.absolute())
         self.events = events
         self.start_date = start_date
         self.today = today
         self.battery_level = battery_level
-        self.width = width
-        self.height = height
-        self.rotation = rotation
 
-    def get_screenshot(self, uri, outfile):
+    def get_screenshot(self, uri, outfile, width=768, height=960):
         self.logger.info('Capturing calendar screenshot')
 
-        # Yeah, I know. subprocess.call() with shell=True is bad, but this
-        # isn't open to the internet and I control all the inputs.
-        # TODO: adapt this for panel size, also deal with the CSS file
-        call(f"xvfb-run --server-args='-screen 0, 768x960x24' \
-        cutycapt --url={uri} --min-width=768 --min-height=960 \
-        --out={outfile} ", shell=True)
+        call(f"xvfb-run --server-args='-screen 0, {width}x{height}x24' \
+        cutycapt --url={uri} --min-width={width} --min-height={height} \
+        --out={outfile}", shell=True)
 
-        self.logger.info('Screenshot captured and saved to file.')
+        self.logger.info(f"Screenshot captured and saved to {outfile}")
 
     def get_day_in_cal(self, start_date, event_date):
         delta = event_date - start_date
@@ -79,17 +59,18 @@ class RenderHelper:
     def build_calendar_list(self):
         calendar_list = []
 
-        for i in range(35):
+        NUM_DAYS = 35
+        for i in range(NUM_DAYS):
             calendar_list.append([])
 
         # for each item in the eventList, add them to the relevant day in our calendar list
         for event in self.events:
             day = self.get_day_in_cal(self.start_date, event['startDatetime'].date())
-            if day >= 0:
+            if day >= 0 and day <= NUM_DAYS:
                 calendar_list[day].append(event)
             if event['isMultiday']:
                 day = self.get_day_in_cal(self.start_date, event['endDatetime'].date())
-                if day < len(calendar_list):
+                if day <= NUM_DAYS:
                     calendar_list[day].append(event)
 
         return calendar_list
@@ -206,18 +187,23 @@ class RenderHelper:
         cal_events_text = '\n'.join(cal_events)
 
         # Read html template
-        with open(self._path + '/calendar_template.html', 'r') as file:
-            calendar_template = file.read()
+        with open(f"{self._path}/calendar_template.html", 'r') as fo:
+            calendar_template = fo.read()
 
         # Append the bottom and write the file
-        calendar_html = open(self._path + '/calendar.html', "w")
+        calendar_html = open(f"{self._path}/calendar.html", "w")
         calendar_html.write(calendar_template.format(
             date=str(f"{self.today.month}/{self.today.day}"),
             battery_text=battery_text, days_of_week=cal_days_of_week,
             events_month=cal_events_text, events_today="\n".join(todays_events)))
         calendar_html.close()
 
-        self.get_screenshot(f"file://{self._path}/calendar.html", f"{self._path}/calendar.png")
+        self.get_screenshot(
+            f"file://{self._path}/calendar.html",
+            f"{self._path}/calendar.png",
+            width=config.screenWidth,
+            height=config.screenHeight
+            )
 
 
 if __name__ == "__main__":

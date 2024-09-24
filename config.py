@@ -1,9 +1,15 @@
 import json
+import pathlib
 
 class Config:
-    def __init__(self, config_file="config.json"):
+    def __init__(self, config_file=None):
+        self._path = str(pathlib.Path(__file__).parent.absolute())
+
+        if not config_file:
+            self.config_file = f"{self._path}/config.json"
+
         # Load the configuration and store each key as a class variable
-        with open(config_file) as fo:
+        with open(self.config_file) as fo:
             json_config = json.load(fo)
 
         for key, value in json_config.items():

@@ -1,6 +1,6 @@
 # Google Calendar API Credential and Token
-gcal/credentials.json
-gcal/token.pickle
+credentials.json
+token.pickle
 
 # Saved events
 last.pickle

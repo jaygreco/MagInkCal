@@ -1,0 +1,10 @@
+[Unit]
+Description=Calendar update timer
+Requires=magical.service
+
+[Timer]
+Unit=magical.service
+OnCalendar=*:0/5:0
+
+[Install]
+WantedBy=timers.target
