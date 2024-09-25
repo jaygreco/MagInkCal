@@ -16,7 +16,7 @@ import logging
 class IcalHelper:
 
     def __init__(self, calendars):
-        self.logger = logging.getLogger('maginkcal')
+        self.logger = logging.getLogger(__name__)
         self.currPath = str(pathlib.Path(__file__).parent.absolute())
         self.calendars = calendars
 
@@ -108,6 +108,7 @@ if __name__ == "__main__":
     from pytz import timezone
 
     config = Config()
+    logging.basicConfig(level=logging.INFO)
 
     displayTZ = timezone(config.displayTZ)
     calStartDate = dt.date(2024, 9, 1)

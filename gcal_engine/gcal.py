@@ -18,7 +18,7 @@ import logging
 class GcalHelper:
 
     def __init__(self):
-        self.logger = logging.getLogger('maginkcal')
+        self.logger = logging.getLogger(__name__)
         # Initialise the Google Calendar using the provided credentials and token
         SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
         self.currPath = str(pathlib.Path(__file__).parent.absolute())
@@ -129,13 +129,14 @@ class GcalHelper:
             eventList.append(newEvent)
 
         # We need to sort eventList because the event will be sorted in "calendar order" instead of hours order
-        # TODO: improve because of double cycle for now is not much cost
         eventList = sorted(eventList, key=lambda k: k['startDatetime'])
         return eventList
 
 if __name__ == "__main__":
     from pprint import pprint
     from pytz import timezone
+
+    logging.basicConfig(level=logging.INFO)
 
     calendars = ["primary"]
     displayTZ = timezone("America/Los_Angeles")
@@ -149,6 +150,3 @@ if __name__ == "__main__":
         calEndDatetime, displayTZ, thresholdHours)
 
     pprint(eventList)
-
-    # import pickle
-    # print(pickle.dumps(eventList))

@@ -32,7 +32,7 @@ python3 -m venv env && source env/bin/activate
 pip install -r requirements.txt
 ```
 
-1. If only using iCloud calendars, skip the next two steps. If using Google Calendars, it's necessary to first grant API access. Follow the [instructions here](https://developers.google.com/calendar/api/quickstart/python) on your PC to get the credentials.json file from your Google API. Don't worry, take your time. I'll be waiting here.
+1. If only using iCloud calendars, skip the next two steps. If using Google Calendars (or both), it's necessary to first grant API access. Follow the [instructions here](https://developers.google.com/calendar/api/quickstart/python) on your PC to get the credentials.json file from your Google API. Don't worry, take your time. I'll be waiting here.
 
 1. Once done, copy the credentials.json file to the "gcal" folder in this project. Run the following command on the pi. A link to a web browser should appear, asking you to grant access to your calendar. Once done, you should see a "token.pickle" file in your "gcal" folder.
 

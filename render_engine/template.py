@@ -51,11 +51,11 @@ if __name__ == "__main__":
     print(test3)
 
     """
-    <div class='event'><span class='badge badge-dark'>8AM</span><i> ASB 1st day of school</i></div>
+    <div class='event'><span class='badge badge-dark'>8AM</span><i> 1st day of school</i></div>
     """
     test4 = template('div', c='event', body=(
         template('span', c='badge badge-dark', body='8AM'),
-        template('i', body=' ASB 1st day of school')
+        template('i', body=' 1st day of school')
         )
     )
     print(test4)

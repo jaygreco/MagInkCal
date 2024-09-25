@@ -2,8 +2,6 @@
 
 # TODO: sort
 import datetime as dt
-import sys
-
 from config import Config
 from pytz import timezone
 from ical_engine.ical import IcalHelper
@@ -11,7 +9,6 @@ from render_engine.render import RenderHelper
 from epd_hidapi.host.panel import Panel
 from epd_hidapi.host.image import Image
 import pathlib
-import json
 import logging
 import pickle
 
@@ -48,7 +45,7 @@ def main():
 
     # Create and configure logger
     logging.basicConfig()
-    logger = logging.getLogger('maginkcal')
+    logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     logger.info("Starting calendar update")
 
