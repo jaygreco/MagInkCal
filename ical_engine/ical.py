@@ -6,11 +6,11 @@ credentials.json in the same folder as this file.
 """
 
 import datetime as dt
-import icalevents.icalevents as ical
-import json
+import logging
 import os.path
 import pathlib
-import logging
+
+import icalevents.icalevents as ical
 
 
 class IcalHelper:
@@ -32,13 +32,15 @@ class IcalHelper:
 
     def to_datetime(self, isoDatetime, localTZ):
         # replace Z with +00:00 is a workaround until datetime library decides what to do with the Z notation
-        toDatetime = dt.datetime.fromisoformat(isoDatetime.replace('Z', '+00:00'))
+        toDatetime = dt.datetime.fromisoformat(
+            isoDatetime.replace('Z', '+00:00'))
         return toDatetime.astimezone(localTZ)
 
     def is_recent_updated(self, updatedTime, thresholdHours):
         # consider events updated within the past X hours as recently updated
         utcnow = dt.datetime.now(dt.timezone.utc)
-        diff = (utcnow - updatedTime).total_seconds() / 3600  # get difference in hours
+        diff = (utcnow - updatedTime).total_seconds() / \
+            3600  # get difference in hours
         return diff < thresholdHours
 
     def adjust_end_time(self, endTime, localTZ):
@@ -66,14 +68,15 @@ class IcalHelper:
         minTimeStr = startDatetime.isoformat()
         maxTimeStr = endDatetime.isoformat()
 
-        self.logger.info('Retrieving events between ' + minTimeStr + ' and ' + maxTimeStr + '...')
+        self.logger.info('Retrieving events between ' +
+                         minTimeStr + ' and ' + maxTimeStr + '...')
         events_result = []
         for cal in self.calendars:
             events_result.extend(
-                ical.events(url=cal["id"], 
-                    start=startDatetime, end=endDatetime,
-                    fix_apple=True, sort=True, tzinfo=localTZ)
-                )
+                ical.events(url=cal["id"],
+                            start=startDatetime, end=endDatetime,
+                            fix_apple=True, sort=True, tzinfo=localTZ)
+            )
 
         key_map = [
             ("all_day", "allday"),
@@ -90,22 +93,26 @@ class IcalHelper:
             if event['allday'] is True:
                 # Force start and end times to be the same
                 event['startDatetime'] = event['endDatetime']
-            event['endDatetime'] = self.adjust_end_time(event['endDatetime'], localTZ)
-            event['isUpdated'] = self.is_recent_updated(event['updatedDatetime'], thresholdHours)
-            event['isMultiday'] = self.is_multiday(event['startDatetime'], event['endDatetime'])
+            event['endDatetime'] = self.adjust_end_time(
+                event['endDatetime'], localTZ)
+            event['isUpdated'] = self.is_recent_updated(
+                event['updatedDatetime'], thresholdHours)
+            event['isMultiday'] = self.is_multiday(
+                event['startDatetime'], event['endDatetime'])
 
-         #Sort eventList because the event will be sorted in "calendar order" instead of hours order
+         # Sort eventList because the event will be sorted in "calendar order" instead of hours order
         return sorted(events, key=lambda k: k['startDatetime'])
 
+
 if __name__ == "__main__":
-    import sys
     import os
+    import sys
     here = os.path.dirname(__file__)
     sys.path.append(os.path.join(here, '..'))
 
-    from config import Config
     from pprint import pprint
     from pytz import timezone
+    from config import Config
 
     config = Config()
     logging.basicConfig(level=logging.INFO)
@@ -113,11 +120,13 @@ if __name__ == "__main__":
     displayTZ = timezone(config.displayTZ)
     calStartDate = dt.date(2024, 9, 1)
     calEndDate = calStartDate + dt.timedelta(days=(5 * 7 - 1))
-    calStartDatetime = displayTZ.localize(dt.datetime.combine(calStartDate, dt.datetime.min.time()))
-    calEndDatetime = displayTZ.localize(dt.datetime.combine(calEndDate, dt.datetime.max.time()))
+    calStartDatetime = displayTZ.localize(
+        dt.datetime.combine(calStartDate, dt.datetime.min.time()))
+    calEndDatetime = displayTZ.localize(
+        dt.datetime.combine(calEndDate, dt.datetime.max.time()))
 
     icalService = IcalHelper(calendars=config.get("calendars", []))
-    eventList = icalService.retrieve_events(calStartDatetime, 
-        calEndDatetime, displayTZ, config.thresholdHours)
+    eventList = icalService.retrieve_events(calStartDatetime,
+                                            calEndDatetime, displayTZ, config.thresholdHours)
 
     pprint(eventList)

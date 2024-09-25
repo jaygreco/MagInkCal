@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 
-# TODO: sort, format
 # Add root to path so modules in the parent directory are accessible
-import sys
 import os
+import sys
 here = os.path.dirname(__file__)
 sys.path.append(os.path.join(here, '..'))
 
-from time import sleep
-from datetime import timedelta, datetime, date
-from render_engine.template import template as t
-from config import Config
-import pathlib
 import logging
-import shutil
+import pathlib
+from datetime import date, timedelta
 from subprocess import call
+
+from config import Config
+from render_engine.template import template as t
+
 
 class RenderHelper:
     def __init__(self, events, start_date, today, battery_level=100):
@@ -41,7 +40,8 @@ class RenderHelper:
     def get_short_time(self, datetime_obj, is_24hour=False):
         datetime_str = ''
         if is_24hour:
-            datetime_str = '{}:{:02d}'.format(datetime_obj.hour, datetime_obj.minute)
+            datetime_str = '{}:{:02d}'.format(
+                datetime_obj.hour, datetime_obj.minute)
         else:
             if datetime_obj.minute > 0:
                 datetime_str = ':{:02d}'.format(datetime_obj.minute)
@@ -51,9 +51,11 @@ class RenderHelper:
             elif datetime_obj.hour == 12:
                 datetime_str = '12{}P'.format(datetime_str)
             elif datetime_obj.hour > 12:
-                datetime_str = '{}{}P'.format(str(datetime_obj.hour % 12), datetime_str)
+                datetime_str = '{}{}P'.format(
+                    str(datetime_obj.hour % 12), datetime_str)
             else:
-                datetime_str = '{}{}A'.format(str(datetime_obj.hour), datetime_str)
+                datetime_str = '{}{}A'.format(
+                    str(datetime_obj.hour), datetime_str)
         return datetime_str
 
     def build_calendar_list(self):
@@ -65,11 +67,13 @@ class RenderHelper:
 
         # for each item in the eventList, add them to the relevant day in our calendar list
         for event in self.events:
-            day = self.get_day_in_cal(self.start_date, event['startDatetime'].date())
+            day = self.get_day_in_cal(
+                self.start_date, event['startDatetime'].date())
             if day >= 0 and day <= NUM_DAYS:
                 calendar_list[day].append(event)
             if event['isMultiday']:
-                day = self.get_day_in_cal(self.start_date, event['endDatetime'].date())
+                day = self.get_day_in_cal(
+                    self.start_date, event['endDatetime'].date())
                 if day <= NUM_DAYS:
                     calendar_list[day].append(event)
 
@@ -108,14 +112,13 @@ class RenderHelper:
         l = []
         for d in range(0, 7):
             l.append(t('li', c='font-weight-bold text-uppercase',
-                body=config.dayOfWeekText[(d + config.weekStartDay) % 7]))
+                       body=config.dayOfWeekText[(d + config.weekStartDay) % 7]))
         cal_days_of_week = '\n'.join(l)
 
         # Populate the date and events
         cal_events = []
         todays_events = []
         for i, entry in enumerate(calendar_days):
-            # TODO: can we do this without i? maybe?
             current_date = self.start_date + timedelta(days=i)
             day_of_month = current_date.day
 
@@ -144,21 +147,24 @@ class RenderHelper:
                     text_style = ""
                     badge_style = "badge-dark"
 
-                event_time = self.get_short_time(event['startDatetime'], config.is24hour)
+                event_time = self.get_short_time(
+                    event['startDatetime'], config.is24hour)
 
                 if event['isMultiday'] and event['startDatetime'].date() == current_date:
                     event_summary = t('b', body="&rarr;") + event['summary']
-                elif event['isMultiday']and event['startDatetime'].date() != current_date:
+                elif event['isMultiday'] and event['startDatetime'].date() != current_date:
                     event_summary = t('b', body="&larr;") + event['summary']
                 else:
                     event_summary = event['summary']
 
-                time_badge = "" if event['allday'] else t('span', c=f'badge {badge_style}', body=event_time)
+                time_badge = "" if event['allday'] else t(
+                    'span', c=f'badge {badge_style}', body=event_time)
                 events.append(
                     t('div', c=f'event {text_style}', body=(
-                        time_badge, " ", 
-                        t('b', body=event_summary.encode('ascii', 'xmlcharrefreplace').decode("utf-8"))
-                        )
+                        time_badge, " ",
+                        t('b', body=event_summary.encode(
+                            'ascii', 'xmlcharrefreplace').decode("utf-8"))
+                    )
                     )
                 )
 
@@ -167,7 +173,8 @@ class RenderHelper:
                 event_summary = f"+{len(events) - config.maxEventsPerDay} more..."
                 events = events[:config.maxEventsPerDay]
                 events.append(
-                    t('div', c='event text-muted', body=(t('i', body=event_summary)))
+                    t('div', c='event text-muted',
+                      body=(t('i', body=event_summary)))
                 )
 
             # Add the day's events
@@ -175,7 +182,7 @@ class RenderHelper:
                 t('li', body=(
                     t('div', c=c, body=day_of_month),
                     "".join(events)
-                    )
+                )
                 )
             )
 
@@ -203,7 +210,7 @@ class RenderHelper:
             f"{self._path}/calendar.png",
             width=config.screenWidth,
             height=config.screenHeight
-            )
+        )
 
 
 if __name__ == "__main__":
@@ -218,5 +225,5 @@ if __name__ == "__main__":
     events.append(events[-1])
 
     renderService = RenderHelper(events=events,
-        start_date=date(2024, 9, 1), today=date(2024, 9, 2))
+                                 start_date=date(2024, 9, 1), today=date(2024, 9, 2))
     renderService.process_inputs()

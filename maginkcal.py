@@ -1,20 +1,21 @@
 #!/usr/bin/env python3
 
-# TODO: sort
 import datetime as dt
-from config import Config
-from pytz import timezone
-from ical_engine.ical import IcalHelper
-from render_engine.render import RenderHelper
-from epd_hidapi.host.panel import Panel
-from epd_hidapi.host.image import Image
-import pathlib
 import logging
+import pathlib
 import pickle
 
-_path = str(pathlib.Path(__file__).parent.absolute())
+from pytz import timezone
+
+from config import Config
+from epd_hidapi.host.image import Image
+from epd_hidapi.host.panel import Panel
+from ical_engine.ical import IcalHelper
+from render_engine.render import RenderHelper
+
 
 def should_refresh(event_list, today):
+    _path = str(pathlib.Path(__file__).parent.absolute())
     refresh = False
     last = {}
 
@@ -58,40 +59,51 @@ def main():
         currDatetime = dt.datetime.now(config.displayTZ)
         logger.info("Time synchronised to {}".format(currDatetime))
         currDate = currDatetime.date()
-        calStartDate = currDate - dt.timedelta(days=((currDate.weekday() + (7 - config.weekStartDay)) % 7))
+        calStartDate = currDate - \
+            dt.timedelta(
+                days=((currDate.weekday() + (7 - config.weekStartDay)) % 7))
         calEndDate = calStartDate + dt.timedelta(days=(5 * 7 - 1))
-        calStartDatetime = config.displayTZ.localize(dt.datetime.combine(calStartDate, dt.datetime.min.time()))
-        calEndDatetime = config.displayTZ.localize(dt.datetime.combine(calEndDate, dt.datetime.max.time()))
+        calStartDatetime = config.displayTZ.localize(
+            dt.datetime.combine(calStartDate, dt.datetime.min.time()))
+        calEndDatetime = config.displayTZ.localize(
+            dt.datetime.combine(calEndDate, dt.datetime.max.time()))
 
         # Retrieve all events within start and end date (inclusive)
         start = dt.datetime.now()
         eventList = []
 
-        gcal_calendars = [cal for cal in config.calendars if cal.get("type")  == "gcal"]
+        gcal_calendars = [
+            cal for cal in config.calendars if cal.get("type") == "gcal"]
         logger.info("gcal_calendars: " + str(gcal_calendars))
         if gcal_calendars:
             # Use lazy imports so that gcal credentials aren't required if not using a google calendar
             from gcal_engine.gcal import GcalHelper
             gcalService = GcalHelper()
-            eventList.extend(gcalService.retrieve_events(gcal_calendars, calStartDatetime, calEndDatetime, config.displayTZ, config.thresholdHours))
+            eventList.extend(gcalService.retrieve_events(
+                gcal_calendars, calStartDatetime, calEndDatetime, config.displayTZ, config.thresholdHours))
 
-        ical_calendars = [cal for cal in config.calendars if cal.get("type") == "ical"]
+        ical_calendars = [
+            cal for cal in config.calendars if cal.get("type") == "ical"]
         logger.info("ical_calendars: " + str(ical_calendars))
         if ical_calendars:
             icalService = IcalHelper(ical_calendars)
-            eventList.extend(icalService.retrieve_events(calStartDatetime, calEndDatetime, config.displayTZ, config.thresholdHours))
+            eventList.extend(icalService.retrieve_events(
+                calStartDatetime, calEndDatetime, config.displayTZ, config.thresholdHours))
 
-        logger.info(f"{len(eventList)} calendar events retrieved in " + str(dt.datetime.now() - start))
+        logger.info(f"{len(eventList)} calendar events retrieved in " +
+                    str(dt.datetime.now() - start))
 
-        # Only proceed if the calendar events have changed, or it's a new day. 
+        # Only proceed if the calendar events have changed, or it's a new day.
         if not should_refresh(eventList, currDate):
             logger.info("No updates; not refreshing panel")
             return
 
         logger.info("Refreshing panel")
-        renderService = RenderHelper(events=eventList, start_date=calStartDate, today=currDate)
+        renderService = RenderHelper(
+            events=eventList, start_date=calStartDate, today=currDate)
         renderService.process_inputs()
 
+        _path = str(pathlib.Path(__file__).parent.absolute())
         infile = f"{_path}/render_engine/calendar.png"
         image = Image(infile)
         image.resize(width=config.screenWidth, height=config.screenHeight)
@@ -111,6 +123,7 @@ def main():
             raise e
 
     logger.info("Completed calendar update")
+
 
 if __name__ == "__main__":
     main()

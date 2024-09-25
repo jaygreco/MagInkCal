@@ -6,13 +6,14 @@ credentials.json and token.pickle in the same folder as this file. If not, run q
 """
 
 import datetime as dt
-import pickle
+import logging
 import os.path
 import pathlib
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
+import pickle
+
 from google.auth.transport.requests import Request
-import logging
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
 
 
 class GcalHelper:
@@ -42,7 +43,8 @@ class GcalHelper:
             with open(self.currPath + '/token.pickle', 'wb') as token:
                 pickle.dump(creds, token)
 
-        self.service = build('calendar', 'v3', credentials=creds, cache_discovery=False)
+        self.service = build(
+            'calendar', 'v3', credentials=creds, cache_discovery=False)
 
     def list_calendars(self):
         # helps to retrieve ID for calendars within the account
@@ -59,13 +61,15 @@ class GcalHelper:
 
     def to_datetime(self, isoDatetime, localTZ):
         # replace Z with +00:00 is a workaround until datetime library decides what to do with the Z notation
-        toDatetime = dt.datetime.fromisoformat(isoDatetime.replace('Z', '+00:00'))
+        toDatetime = dt.datetime.fromisoformat(
+            isoDatetime.replace('Z', '+00:00'))
         return toDatetime.astimezone(localTZ)
 
     def is_recent_updated(self, updatedTime, thresholdHours):
         # consider events updated within the past X hours as recently updated
         utcnow = dt.datetime.now(dt.timezone.utc)
-        diff = (utcnow - updatedTime).total_seconds() / 3600  # get difference in hours
+        diff = (utcnow - updatedTime).total_seconds() / \
+            3600  # get difference in hours
         return diff < thresholdHours
 
     def adjust_end_time(self, endTime, localTZ):
@@ -88,7 +92,8 @@ class GcalHelper:
         minTimeStr = startDatetime.isoformat()
         maxTimeStr = endDatetime.isoformat()
 
-        self.logger.info('Retrieving events between ' + minTimeStr + ' and ' + maxTimeStr + '...')
+        self.logger.info('Retrieving events between ' +
+                         minTimeStr + ' and ' + maxTimeStr + '...')
         events_result = []
         for cal in calendars:
             events_result.append(
@@ -111,10 +116,12 @@ class GcalHelper:
 
             if event['start'].get('dateTime') is None:
                 newEvent['allday'] = True
-                newEvent['startDatetime'] = self.to_datetime(event['start'].get('date'), localTZ)
+                newEvent['startDatetime'] = self.to_datetime(
+                    event['start'].get('date'), localTZ)
             else:
                 newEvent['allday'] = False
-                newEvent['startDatetime'] = self.to_datetime(event['start'].get('dateTime'), localTZ)
+                newEvent['startDatetime'] = self.to_datetime(
+                    event['start'].get('dateTime'), localTZ)
 
             if event['end'].get('dateTime') is None:
                 newEvent['endDatetime'] = self.adjust_end_time(self.to_datetime(event['end'].get('date'), localTZ),
@@ -123,14 +130,18 @@ class GcalHelper:
                 newEvent['endDatetime'] = self.adjust_end_time(self.to_datetime(event['end'].get('dateTime'), localTZ),
                                                                localTZ)
 
-            newEvent['updatedDatetime'] = self.to_datetime(event['updated'], localTZ)
-            newEvent['isUpdated'] = self.is_recent_updated(newEvent['updatedDatetime'], thresholdHours)
-            newEvent['isMultiday'] = self.is_multiday(newEvent['startDatetime'], newEvent['endDatetime'])
+            newEvent['updatedDatetime'] = self.to_datetime(
+                event['updated'], localTZ)
+            newEvent['isUpdated'] = self.is_recent_updated(
+                newEvent['updatedDatetime'], thresholdHours)
+            newEvent['isMultiday'] = self.is_multiday(
+                newEvent['startDatetime'], newEvent['endDatetime'])
             eventList.append(newEvent)
 
         # We need to sort eventList because the event will be sorted in "calendar order" instead of hours order
         eventList = sorted(eventList, key=lambda k: k['startDatetime'])
         return eventList
+
 
 if __name__ == "__main__":
     from pprint import pprint
@@ -143,10 +154,12 @@ if __name__ == "__main__":
     thresholdHours = 24
     calStartDate = dt.date(2024, 9, 1)
     calEndDate = calStartDate + dt.timedelta(days=(5 * 7 - 1))
-    calStartDatetime = displayTZ.localize(dt.datetime.combine(calStartDate, dt.datetime.min.time()))
-    calEndDatetime = displayTZ.localize(dt.datetime.combine(calEndDate, dt.datetime.max.time()))
+    calStartDatetime = displayTZ.localize(
+        dt.datetime.combine(calStartDate, dt.datetime.min.time()))
+    calEndDatetime = displayTZ.localize(
+        dt.datetime.combine(calEndDate, dt.datetime.max.time()))
     gcalService = GcalHelper()
-    eventList = gcalService.retrieve_events(calendars, calStartDatetime, 
-        calEndDatetime, displayTZ, thresholdHours)
+    eventList = gcalService.retrieve_events(calendars, calStartDatetime,
+                                            calEndDatetime, displayTZ, thresholdHours)
 
     pprint(eventList)
