@@ -109,9 +109,10 @@ def main():
         image.resize(width=config.screenWidth, height=config.screenHeight)
         image.rotate(rotation=90)
         image.extract(threshold=200)
-        image.save(f"{infile}_resized.png")
-        image.save(f"{infile}_black.bmp", monochrome=True, color="black")
-        image.save(f"{infile}_red.bmp", monochrome=True, color="red")
+        # NOTE: Enable to debug raw black/red images
+        # image.save(f"{infile}_resized.png")
+        # image.save(f"{infile}_black.bmp", monochrome=True, color="black")
+        # image.save(f"{infile}_red.bmp", monochrome=True, color="red")
 
         if config.isDisplayToScreen:
             panel = Panel()

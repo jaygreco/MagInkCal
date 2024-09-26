@@ -26,11 +26,22 @@ sudo apt install libopenjp2-7-dev
 $ git clone https://github.com/jaygreco/MagInkCal && cd MagInkCal
 ```
 
+1. Clone the required submodules
+```
+$ git submodule update --init --recursive
+```
+
 1. Create a virtual environment inside the `Maginkcal` repository from the step above.
 ```
 python3 -m venv env && source env/bin/activate
 pip install -r requirements.txt
 ```
+
+1. Create and customize `config.json`
+```
+cp config.json.sample config.json
+```
+Edit to your heart's content. Add your calendars here.
 
 1. If only using iCloud calendars, skip the next two steps. If using Google Calendars (or both), it's necessary to first grant API access. Follow the [instructions here](https://developers.google.com/calendar/api/quickstart/python) on your PC to get the credentials.json file from your Google API. Don't worry, take your time. I'll be waiting here.
 
