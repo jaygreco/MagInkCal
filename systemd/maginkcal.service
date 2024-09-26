@@ -1,0 +1,13 @@
+[Unit]
+Description=Calendar update service
+Wants=maginkcal.timer
+
+[Service]
+User=pi
+Group=pi
+WorkingDirectory=/home/pi/MagInkCal/
+Type=oneshot
+ExecStart=/home/pi/MagInkCal/env/bin/python3 /home/pi/MagInkCal/maginkcal.py
+
+[Install]
+WantedBy=multi-user.target

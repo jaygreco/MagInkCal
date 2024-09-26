@@ -1,0 +1,20 @@
+{
+  "displayTZ": "America/Los_Angeles",
+  "thresholdHours": 24,
+  "maxEventsPerDay": 3,
+  "isDisplayToScreen": true,
+  "isShutdownOnComplete": false,
+  "batteryDisplayMode": 0,
+  "weekStartDay": 6,
+  "dayOfWeekText": ["M", "T", "W", "T", "F", "S", "S"],
+  "screenWidth": 960,
+  "screenHeight": 768,
+  "imageWidth": 768,
+  "imageHeight": 960,
+  "rotateAngle": 90,
+  "is24h": false,
+  "calendars": [
+    {"type": "ical", "summary":"test calendar","id": "webcal://some_calendar_url"},
+    {"type": "gcal", "summary":"test calendar","id": "gcal://some_calendar_url"},
+  ]
+}

@@ -1,10 +1,16 @@
 # Google Calendar API Credential and Token
-gcal/credentials.json
-gcal/token.pickle
+credentials.json
+token.pickle
+
+# Saved events
+last.pickle
 
 # Intermediate render files
-render/calendar.html
-render/calendar.png
+calendar.html
+calendar.png
+
+# Config
+config.json
 
 #intellij config
 .idea/

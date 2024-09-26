@@ -1,0 +1,39 @@
+<html>
+<head>
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="container p-0 m-0">
+    <!-- Calendar -->
+    <div class="calendar shadow bg-white">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-sm-4 text-center">
+                    <!-- Month -->
+                    <div class="align-items-center text-center">
+                        <h3 class="month font-weight-bold mb-0 text-uppercase">{date}</h3>
+                    </div>
+                </div>
+                <div class="col-sm-8 align-items-center text-center">
+                    <!-- Today's events -->
+                        <ol class="list-unstyled list-centered">
+                            <li class="p-3 font-weight-boldore today-list">
+                                {events_today}
+                            </li>
+                        </ol>
+                </div>
+            </div>
+        </div>
+        <!-- Battery -->
+        <div class="batt_container">
+            <img class="{battery_text}" src="battery.png" />
+        </div>
+        <!-- Days of week -->
+        <ol class="day-names list-unstyled text-center">{days_of_week}</ol>
+        <!-- Calendar and events -->
+        <ol class="days list-unstyled">{events_month}</ol>
+    </div>
+</div>
+</body>
+</html>
