@@ -108,6 +108,7 @@ def main():
         image = Image(infile)
         image.resize(width=config.screenWidth, height=config.screenHeight)
         image.rotate(rotation=90)
+        image.quantize(dither=config.ditherImage)
         image.extract(threshold=200)
         # NOTE: Enable to debug raw black/red images
         # image.save(f"{infile}_resized.png")

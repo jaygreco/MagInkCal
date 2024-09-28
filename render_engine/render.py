@@ -8,6 +8,7 @@ sys.path.append(os.path.join(here, '..'))
 
 import logging
 import pathlib
+import platform
 from datetime import date, timedelta
 from subprocess import call
 
@@ -27,9 +28,19 @@ class RenderHelper:
     def get_screenshot(self, uri, outfile, width=768, height=960):
         self.logger.info('Capturing calendar screenshot')
 
-        call(f"xvfb-run --server-args='-screen 0, {width}x{height}x24' \
+        os_name = platform.system()
+        self.logger.info(f'Detected platform {os_name}.')
+
+        if os_name == "Linux":
+            platform_overrides = f"xvfb-run --server-args='-screen 0, {width}x{height}x24'"
+        elif os_name == "Darwin":
+            platform_overrides = ""
+        else:
+            raise OSError(f"Platform {os_name} not supported!")
+
+        call(f"{platform_overrides} \
         cutycapt --url={uri} --min-width={width} --min-height={height} \
-        --out={outfile}", shell=True)
+        --smooth --out={outfile}", shell=True)
 
         self.logger.info(f"Screenshot captured and saved to {outfile}")
 

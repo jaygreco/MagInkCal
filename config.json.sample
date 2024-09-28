@@ -2,6 +2,7 @@
   "displayTZ": "America/Los_Angeles",
   "thresholdHours": 24,
   "maxEventsPerDay": 3,
+  "raiseExceptions": true,
   "isDisplayToScreen": true,
   "isShutdownOnComplete": false,
   "batteryDisplayMode": 0,
@@ -12,6 +13,7 @@
   "imageWidth": 768,
   "imageHeight": 960,
   "rotateAngle": 90,
+  "ditherImage": true,
   "is24h": false,
   "calendars": [
     {"type": "ical", "summary":"test calendar","id": "webcal://some_calendar_url"},

@@ -7,7 +7,7 @@ last.pickle
 
 # Intermediate render files
 calendar.html
-calendar.png
+*.png
 
 # Config
 config.json
