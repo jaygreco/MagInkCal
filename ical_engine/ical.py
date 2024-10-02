@@ -9,6 +9,7 @@ import datetime as dt
 import logging
 import os.path
 import pathlib
+import pytz
 
 import icalevents.icalevents as ical
 
@@ -30,31 +31,34 @@ class IcalHelper:
             cal_id = calendar['id']
             self.logger.info("%s\t%s" % (summary, cal_id))
 
-    def to_datetime(self, isoDatetime, localTZ):
-        # replace Z with +00:00 is a workaround until datetime library decides what to do with the Z notation
-        toDatetime = dt.datetime.fromisoformat(
-            isoDatetime.replace('Z', '+00:00'))
-        return toDatetime.astimezone(localTZ)
-
-    def is_recent_updated(self, updatedTime, thresholdHours):
+    def is_recent_updated(self, event, thresholdHours):
         # consider events updated within the past X hours as recently updated
         utcnow = dt.datetime.now(dt.timezone.utc)
-        diff = (utcnow - updatedTime).total_seconds() / \
-            3600  # get difference in hours
-        return diff < thresholdHours
+        diff = (utcnow - event['updatedDatetime']).total_seconds() / 3600
+        event['isUpdated'] = diff < thresholdHours
 
-    def adjust_end_time(self, endTime, localTZ):
-        # check if end time is at 00:00 of next day, if so set to max time for day before
-        if endTime.hour == 0 and endTime.minute == 0 and endTime.second == 0:
-            newEndtime = localTZ.localize(
-                dt.datetime.combine(endTime.date() - dt.timedelta(days=1), dt.datetime.max.time()))
-            return newEndtime
-        else:
-            return endTime
+        return event
 
-    def is_multiday(self, start, end):
+    def normalize_allday_time(self, event, localTZ):
+        if event['allday']:
+            utc_start = event['startDatetime'].astimezone(pytz.utc)
+            utc_end = event['endDatetime'].astimezone(pytz.utc)
+
+            # check if end time is at 00:00 of next day, if so set to max time for day before
+            if utc_end.hour == 0 and utc_end.minute == 0 and utc_end.second == 0:
+                newEndtime = dt.datetime.combine(utc_end.date() - dt.timedelta(days=1), dt.datetime.max.time())
+                utc_end = newEndtime
+
+            event['startDatetime'] = utc_start.replace(tzinfo=localTZ)
+            event['endDatetime'] = utc_end.replace(tzinfo=localTZ)
+
+        return event
+
+    def is_multiday(self, event):
         # check if event stretches across multiple days
-        return start.date() != end.date()
+        event['isMultiday'] = event['startDatetime'].date() != event['endDatetime'].date()
+
+        return event
 
     def map_keys(self, key_map, d):
         for old_key, new_key in key_map:
@@ -90,15 +94,11 @@ class IcalHelper:
             self.logger.info('No upcoming events found.')
 
         for event in events:
-            if event['allday'] is True:
-                # Force start and end times to be the same
-                event['startDatetime'] = event['endDatetime']
-            event['endDatetime'] = self.adjust_end_time(
-                event['endDatetime'], localTZ)
-            event['isUpdated'] = self.is_recent_updated(
-                event['updatedDatetime'], thresholdHours)
-            event['isMultiday'] = self.is_multiday(
-                event['startDatetime'], event['endDatetime'])
+            # Floating (all-day) events are always in UTC, which should be converted to the local time
+            # i.e. UTC 00:00 --> PST 00:00
+            event = self.normalize_allday_time(event, localTZ)
+            event = self.is_recent_updated(event, thresholdHours)
+            event = self.is_multiday(event)
 
          # Sort eventList because the event will be sorted in "calendar order" instead of hours order
         return sorted(events, key=lambda k: k['startDatetime'])
