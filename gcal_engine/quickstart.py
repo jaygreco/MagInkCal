@@ -44,7 +44,7 @@ def main():
     service = build('calendar', 'v3', credentials=creds)
 
     # Call the Calendar API
-    datetime.datetime.now(datetime.UTC).isoformat() + 'Z' # 'Z' indicates UTC time
+    now = datetime.datetime.now(datetime.UTC).isoformat() + 'Z' # 'Z' indicates UTC time
     print('Getting the upcoming 10 events')
     events_result = service.events().list(calendarId='primary', timeMin=now,
                                         maxResults=10, singleEvents=True,
